@@ -2,17 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Animator Pro Ultra v42.4 (Ultimate Stability)</title>
+    <title>Animator Pro Ultra v42.5 (Link Auto-Detect)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         :root { --primary: #2563eb; --active-key: #3b82f6; --success: #10b981; --danger: #ef4444; --dark: #1e293b; --bg: #f1f5f9; --border: #e2e8f0; --warning: #f59e0b; }
         body { font-family: 'Inter', sans-serif; display: flex; flex-direction: column; height: 100vh; background: var(--bg); margin: 0; overflow: hidden; color: #334155; }
         
-        /* プレイヤーモード：失敗時に真っ白にならないよう背景を確保 */
         body.player-mode .sidebar, body.player-mode #timelineResizer, body.player-mode .timeline-container { display: none !important; }
         body.player-mode .top-area { padding: 0; }
-        body.player-mode .canvas-area { background: #000; border-radius: 0; flex: 1; height: 100vh; }
+        body.player-mode .canvas-area { background: #000; border-radius: 0; flex: 1; }
 
         .top-area { display: flex; flex: 1; min-height: 0; padding: 5px; gap: 8px; overflow: hidden; }
         .sidebar { background: white; width: 340px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow-y: auto; padding: 10px; gap: 8px; z-index: 500; }
@@ -66,14 +65,14 @@
     <div class="top-area">
         <div class="sidebar">
             <div style="display:flex; justify-content:space-between; align-items:center; padding: 2px;">
-                <h3 style="font-size:12px; margin:0;">Animator Pro v42.4</h3>
+                <h3 style="font-size:12px; margin:0;">Animator Pro v42.5</h3>
                 <button class="btn-s" onclick="undo()">↩ Undo</button>
             </div>
 
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAcc('acc-share')">SHARE & OUTPUT 📤 <span>▼</span></div>
                 <div class="accordion-content" id="acc-share">
-                    <button class="btn-success" style="width:100%; padding:10px; margin-bottom:8px;" onclick="generateShareUrl()">🚀 Share via URL (Small Only)</button>
+                    <button class="btn-success" style="width:100%; padding:10px; margin-bottom:8px;" onclick="generateShareUrl()">🚀 Share via Compressed URL</button>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;">
                         <button class="btn-p" onclick="copyProjectData()">📋 Copy Data</button>
                         <button class="btn-warning" onclick="loadFromGistPrompt()">📥 Gist Load</button>
@@ -237,40 +236,41 @@
         });
     };
 
-    // --- 🚀 GitHub Gist 安定読込ロジック ---
+    // --- 🚀 究極の読込ロジック (IDとURLを自動判別) ---
     async function checkUrlParams() {
         const hash = window.location.hash;
         if (hash.startsWith("#gist=")) {
-            const gistId = hash.replace("#gist=", "");
+            const target = hash.replace("#gist=", "");
             try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`);
-                if (!res.ok) throw new Error("Gist not found");
-                const data = await res.json();
-                
-                const file = Object.values(data.files)[0];
-                let content = file.content;
-                
-                // GitHub APIの制限(1MB)で内容が省略されている場合、直接取得し直す
-                if (file.truncated || !content) {
-                    const rawRes = await fetch(file.raw_url);
-                    content = await rawRes.text();
+                let content = "";
+                // 判別：URLが直接入っている場合
+                if (target.startsWith("http")) {
+                    const res = await fetch(target);
+                    content = await res.text();
+                } 
+                // 判別：IDだけ入っている場合
+                else {
+                    const res = await fetch(`https://api.github.com/gists/${target}`);
+                    const data = await res.json();
+                    const file = Object.values(data.files)[0];
+                    content = file.content;
+                    if (file.truncated || !content) {
+                        const rawRes = await fetch(file.raw_url);
+                        content = await rawRes.text();
+                    }
                 }
-
                 document.body.classList.add("player-mode");
                 await performLoad(content);
                 setTimeout(() => play(), 1000);
             } catch (e) {
-                console.error("Load Error:", e);
-                alert("データの読み込みに失敗しました。IDが正しいか確認してください。");
-                document.body.classList.remove("player-mode"); // 失敗時は編集画面に戻す
+                alert("データの読み込みに失敗しました。");
+                document.body.classList.remove("player-mode");
             }
         } else if (hash.startsWith("#p=")) {
-            try {
-                const json = LZString.decompressFromEncodedURIComponent(hash.replace("#p=",""));
-                document.body.classList.add("player-mode");
-                await performLoad(json);
-                setTimeout(() => play(), 1000);
-            } catch (e) {}
+            const json = LZString.decompressFromEncodedURIComponent(hash.replace("#p=",""));
+            document.body.classList.add("player-mode");
+            await performLoad(json);
+            setTimeout(() => play(), 1000);
         }
     }
 
@@ -282,9 +282,10 @@
             bg.data = p.bgData;
             if(bg.data){ bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; }
             library = p.library || {}; initLibraryUI(); updateTimeline(); scrubTo(0); draw();
-        } catch (e) { console.error("JSON Parse Error", e); throw e; }
+        } catch (e) { console.error("JSON Parse Error"); throw e; }
     }
 
+    // --- 🖱️ 操作ロジック ---
     function setupZoom() {
         document.getElementById('viewport').onwheel = (e) => {
             e.preventDefault();
@@ -296,15 +297,13 @@
     function onTimelineDown(e) {
         const rect = document.getElementById('timelineRuler').getBoundingClientRect();
         dragInfo = { type: 'playhead', startX: e.clientX };
-        currentTime = Math.max(0, (e.clientX - rect.left) / P_SEC);
-        scrubTo(currentTime);
+        currentTime = Math.max(0, (e.clientX - rect.left) / P_SEC); scrubTo(currentTime);
     }
 
     window.onmousemove = (e) => {
         if(!dragInfo.type || isPlaying) return;
         const rect = document.getElementById('timelineRuler').getBoundingClientRect();
         if (Math.abs(e.clientX - dragInfo.startX) > 2) dragInfo.mouseMoved = true;
-
         if(dragInfo.type === 'playhead') {
             currentTime = Math.max(0, (e.clientX - rect.left) / P_SEC); scrubTo(currentTime);
         } else if(dragInfo.type === 'canvas') {
@@ -426,16 +425,15 @@
     function toggleAcc(id) { const c=document.getElementById(id); c.style.display=c.style.display==='none'?'block':'none'; }
     function saveHistory() { history.push(JSON.stringify(objects)); if(history.length>30) history.shift(); }
     function undo() { if(!history.length) return; objects = JSON.parse(history.pop()); objects.forEach(o=>{if(o.type==='image'){o.el=new Image();o.el.src=o.src;}}); updateTimeline(); draw(); }
-    function toggleMainLock() { if(!activeId) return; const o=objects.find(x=>x.id===activeId); o.locked=!o.locked; select(activeId); }
     function toggleMainLockByID(id) { const o=objects.find(x=>x.id===id); o.locked=!o.locked; select(id); }
     function objVisible(id) { const o=objects.find(x=>x.id===id); o.visible=!o.visible; draw(); updateTimeline(); }
     function syncName(v) { if(activeId){ objects.find(x=>x.id===activeId).name=v; updateTimeline(); } }
-    function delObj() { if(!activeId) return; objects=objects.filter(x=>x.id!==activeId); select(null); }
+    function delObj() { if(!activeId) return; objects=objects.filter(x=>x.id!==activeId); select(null); updateTimeline(); }
     function deleteKey() { if(!activeId || !selectedIndices.length) return; saveHistory(); const o=objects.find(x=>x.id===activeId); o.points=o.points.filter((_,i)=>!selectedIndices.includes(i)); selectedIndices=[]; select(activeId); }
     function addObj(type) { saveHistory(); const id=Date.now(); objects.unshift({id, type, name:type, color:'#3b82f6', visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1,sy:1,a:1}]}); select(id, 0); }
     function triggerFile() { document.getElementById('iconFile').click(); }
-    function generateShareUrl() { const p = { objects: objects.map(o => ({...o, el:null})), bgData: bg.data, library }; const comp = LZString.compressToEncodedURIComponent(JSON.stringify(p)); navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#p=" + comp).then(() => alert("Copied Link!")); }
-    function loadFromGistPrompt() { const id = prompt("Gist ID:"); if(id) { window.location.hash = "#gist=" + id; location.reload(); } }
+    function generateShareUrl() { const p = { objects: objects.map(o => ({...o, el:null})), bgData: bg.data, library }; const comp = LZString.compressToEncodedURIComponent(JSON.stringify(p)); navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#p=" + comp).then(() => alert("Copied!")); }
+    function loadFromGistPrompt() { const id = prompt("Gist ID or Raw URL:"); if(id) { window.location.hash = "#gist=" + id; location.reload(); } }
     function exportImage() { const a=document.createElement('a'); a.download="img.png"; a.href=canvas.toDataURL(); a.click(); }
     function exportProject() { const p={objects:objects.map(o=>({...o, el:null})), bgData:bg.data, library}; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(p)], {type:'application/json'})); a.download=`anim.json`; a.click(); }
     function importProject() { document.getElementById('loadInput').click(); }
