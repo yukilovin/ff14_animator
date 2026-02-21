@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Animator Pro Ultra v42.9 (Ultimate Sync & Scale)</title>
+    <title>Animator Pro Ultra v43.0 (Perfect Layering)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
@@ -32,9 +32,13 @@
         .timeline-label-col { position: sticky; left: 0; width: 170px; min-width: 170px; border-right: 2px solid #cbd5e1; height: 100%; display: flex; align-items: center; padding-left: 10px; font-size: 10px; font-weight: bold; color: #64748b; background: #f1f5f9; z-index: 360; }
         .timeline-ruler { flex: 1; height: 100%; position: relative; cursor: crosshair; }
         .ruler-mark { position: absolute; top: 5px; font-size: 9px; border-left: 1px solid #cbd5e1; padding-left: 2px; height: 20px; color: #94a3b8; }
+        
         .timeline-row { display: flex; height: 42px; align-items: center; border-bottom: 1px solid #f1f5f9; background: #fff; position: relative; }
         .timeline-row.active { background: #eff6ff; }
+        .timeline-row.dragging { opacity: 0.5; background: #e2e8f0; }
+
         .track-handle { position: sticky; left: 0; width: 170px; min-width: 170px; height: 100%; border-right: 2px solid #cbd5e1; display: flex; align-items: center; padding-left: 10px; font-size: 10px; cursor: grab; user-select: none; background: white; z-index: 200; gap: 6px; }
+        .timeline-row.active .track-handle { background: #eff6ff; }
         .timeline-track { flex: 1; height: 100%; position: relative; pointer-events: all; cursor: cell; z-index: 10; }
         .track-inner-line { position: absolute; top: 50%; left: 10px; right: 10px; height: 4px; background: #e2e8f0; border-radius: 2px; transform: translateY(-50%); pointer-events: none; }
         .timeline-key { position: absolute; width: 12px; height: 12px; background: white; border: 2px solid var(--primary); border-radius: 50%; top: 50%; transform: translate(-50%, -50%); cursor: ew-resize; z-index: 100; transition: scale 0.1s; }
@@ -67,7 +71,7 @@
     <div class="top-area">
         <div class="sidebar">
             <div style="display:flex; justify-content:space-between; align-items:center; padding: 2px;">
-                <h3 style="font-size:12px; margin:0;">Animator Pro v42.9</h3>
+                <h3 style="font-size:12px; margin:0;">Animator Pro v43.0</h3>
                 <button class="btn-s" onclick="undo()">↩ Undo</button>
             </div>
 
@@ -176,7 +180,7 @@
         <div class="timeline-scroll-area">
             <div class="timeline-inner-width">
                 <div class="timeline-header-row">
-                    <div class="timeline-label-col">TRACKS</div>
+                    <div class="timeline-label-col">TRACKS (Drag to Reorder)</div>
                     <div class="timeline-ruler" id="timelineRuler" onmousedown="onTimelineDown(event)"></div>
                 </div>
                 <div id="timelineBody"><div class="playhead" id="playhead"></div></div>
@@ -207,7 +211,7 @@
         checkUrlParams(); draw(); updateTimeline();
     }
 
-    // --- 🛡️ UI & Library ---
+    // --- 🛡️ Library & Assets ---
     function initLibraryUI() {
         const grid = document.getElementById('assetGrid');
         if(!grid) return; grid.innerHTML = "";
@@ -221,11 +225,11 @@
     }
 
     function addFromLibrary(name) {
-        if(!library[name]) return alert("Upload icons first.");
+        if(!library[name]) return alert("Please upload icons first.");
         const img = new Image();
         img.onload = () => {
             const id = Date.now();
-            objects.unshift({id, type:'image', el:img, src:library[name], name, visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1,sy:1,a:1}]});
+            objects.unshift({id, type:'image', el:img, src:library[name], name, visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1.2,sy:1.2,a:1}]});
             select(id, 0); updateTimeline();
         };
         img.src = library[name];
@@ -283,7 +287,7 @@
         } catch (e) { console.error("JSON Error"); }
     }
 
-    // --- 🖱️ Core Logic ---
+    // --- 🖱️ Core interaction ---
     function setupZoom() {
         document.getElementById('viewport').onwheel = (e) => {
             e.preventDefault();
@@ -309,7 +313,6 @@
             const o = objects.find(x=>x.id===activeId), r = canvas.getBoundingClientRect();
             const cp = { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
             dragInfo.initialPositions.forEach(i => { o.points[i.idx].x = i.x + (cp.x-dragInfo.canvasStartX); o.points[i.idx].y = i.y + (cp.y-dragInfo.canvasStartY); });
-            // 🚀 位置移動中にサイドパネルに即座に座標を反映
             if(selectedIndices.length) syncSidePanelValues(activeId, selectedIndices[0]);
             draw();
         } else if(dragInfo.type === 'key') {
@@ -326,7 +329,6 @@
     };
     window.onmouseup = () => { if(dragInfo.type && dragInfo.mouseMoved) saveHistory(); dragInfo.type = null; };
 
-    // 🚀 サイドパネルの全値を同期
     function syncSidePanelValues(id, idx) {
         const o = objects.find(x=>x.id===id); if(!o) return;
         const p = o.points[idx];
@@ -375,6 +377,7 @@
         ctx.clearRect(0,0,canvas.width,canvas.height);
         if(bg.el.src) ctx.drawImage(bg.el, 0,0,canvas.width,canvas.height);
         else { ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height); }
+        // 🚀 重なり順：配列の最後(bottom)から描画＝最初(top)が一番手前
         [...objects].reverse().forEach(obj => {
             if(!obj.visible) return;
             const st = temp ? temp[obj.id] : obj.points[0]; if(!st) return;
@@ -402,22 +405,45 @@
         updateTimeline(); draw();
     }
 
+    // --- 🎭 Timeline & Reordering ---
     function updateTimeline() {
         const body=document.getElementById('timelineBody'), ruler=document.getElementById('timelineRuler');
         ruler.innerHTML=''; for(let i=0; i<41; i++){ const m=document.createElement('div'); m.className='ruler-mark'; m.style.left=(i*P_SEC)+'px'; m.innerText=i+'s'; ruler.appendChild(m); }
         const head=document.getElementById('playhead'); body.innerHTML = ""; body.appendChild(head);
-        objects.forEach(obj => {
-            const row=document.createElement('div'); row.className=`timeline-row ${obj.id===activeId?'active':''}`;
+        
+        objects.forEach((obj, idx) => {
+            const row=document.createElement('div'); 
+            row.className=`timeline-row ${obj.id===activeId?'active':''}`;
+            
+            // 🚀 トラック入れ替え用のドラッグ＆ドロップ
+            row.draggable = true;
+            row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', idx); row.classList.add('dragging'); };
+            row.ondragover = (e) => { e.preventDefault(); };
+            row.ondrop = (e) => {
+                e.preventDefault();
+                const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                const toIdx = idx;
+                if(fromIdx === toIdx) return;
+                saveHistory();
+                const [moved] = objects.splice(fromIdx, 1);
+                objects.splice(toIdx, 0, moved);
+                updateTimeline(); draw();
+            };
+            row.ondragend = () => { row.classList.remove('dragging'); };
+
             const label=document.createElement('div'); label.className='track-handle';
             label.innerHTML=`<span onclick="objVisible(${obj.id})">${obj.visible?'👁':'🙈'}</span><span onclick="toggleMainLockByID(${obj.id})">${obj.locked?'🔒':'🔓'}</span><span style="flex:1;overflow:hidden">${obj.name}</span>`;
             label.onclick=()=>select(obj.id);
+            
             const track=document.createElement('div'); track.className='timeline-track'; track.innerHTML='<div class="track-inner-line"></div>';
             track.onclick = (e) => { if(e.ctrlKey) { const r=track.getBoundingClientRect(); addKeyAtTime(obj.id, (e.clientX-r.left)/P_SEC); } };
+            
             let acc=obj.delay;
             obj.points.forEach((p,i) => {
                 acc += (i===0?0:p.dur);
                 const dot=document.createElement('div'); dot.className=`timeline-key ${ (obj.id===activeId && selectedIndices.includes(i)) ? 'selected' : ''}`;
-                dot.style.left=(acc*P_SEC)+'px'; dot.onmousedown=(e)=>{ e.stopPropagation(); dragInfo={type:'key',objId:obj.id,keyIdx:i,startX:e.clientX}; select(obj.id,i,e.shiftKey); };
+                dot.style.left=(acc*P_SEC)+'px'; 
+                dot.onmousedown=(e)=>{ e.stopPropagation(); dragInfo={type:'key',objId:obj.id,keyIdx:i,startX:e.clientX}; select(obj.id,i,e.shiftKey); };
                 const tag=document.createElement('div'); tag.className='key-time-tag'; tag.innerText=acc.toFixed(1)+'s'; dot.appendChild(tag);
                 track.appendChild(dot); acc+=p.wait;
             });
@@ -442,6 +468,7 @@
         select(objId, insertedIdx); updateTimeline();
     }
 
+    // --- Helpers ---
     function lerp(p1, p2, t) { return { x:p1.x+(p2.x-p1.x)*t, y:p1.y+(p2.y-p1.y)*t, rot:p1.rot+(p2.rot-p1.rot)*t, sx:p1.sx+(p2.sx-p1.sx)*t, sy:p1.sy+(p2.sy-p1.sy)*t, a:p1.a+(p2.a-p1.a)*t }; }
     function play() { if(isPlaying) return; isPlaying=true; const start=performance.now()-currentTime*1000; function step(n){ if(!isPlaying) return; currentTime=(n-start)/1000; if(currentTime > 40){stopAnim();return;} scrubTo(currentTime); requestAnimationFrame(step); } requestAnimationFrame(step); }
     function stopAnim() { isPlaying=false; currentTime=0; scrubTo(0); }
@@ -449,13 +476,14 @@
     function saveHistory() { history.push(JSON.stringify(objects)); if(history.length>30) history.shift(); }
     function undo() { if(!history.length) return; objects = JSON.parse(history.pop()); objects.forEach(o=>{if(o.type==='image'){o.el=new Image();o.el.src=o.src;}}); updateTimeline(); draw(); }
     function toggleMainLockByID(id) { const o=objects.find(x=>x.id===id); o.locked=!o.locked; select(id); }
+    function toggleMainLock() { if(!activeId) return; const o=objects.find(x=>x.id===activeId); o.locked=!o.locked; select(activeId); }
     function objVisible(id) { const o=objects.find(x=>x.id===id); o.visible=!o.visible; draw(); updateTimeline(); }
     function sync(id) {
         if(!activeId || !selectedIndices.length) return; const o = objects.find(x=>x.id===activeId), p = o.points[selectedIndices[0]];
         const el = document.getElementById(id), v = parseFloat(el.value); if(isNaN(v)) return;
         if(id==='pKeyTime') { const idx = selectedIndices[0]; let pre = 0; if(idx > 0) { pre = o.delay; for(let i=0; i<idx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait; } if(idx === 0) o.delay = Math.max(0, v); else p.dur = Math.max(0, v - pre); }
         else if(id==='pPosX') p.x=v; else if(id==='pPosY') p.y=v; 
-        else if(id==='pScaleX') p.sx=v; else if(id==='pScaleY') p.sy=v; // 🚀 スケール同期
+        else if(id==='pScaleX') p.sx=v; else if(id==='pScaleY') p.sy=v;
         else if(id==='pRot'||id==='pRot_n'){p.rot=v;document.getElementById('pRot').value=v;document.getElementById('pRot_n').value=v;}
         else if(id==='pDur') p.dur=v; else if(id==='pWait') p.wait=v;
         draw(); updateTimeline();
