@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Animator Pro Ultra v42.8 (Background Fix)</title>
+    <title>Animator Pro Ultra v42.9 (Ultimate Sync & Scale)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
@@ -57,20 +57,17 @@
         .btn-warning { background: var(--warning); color: white; }
         .btn-success { background: var(--success); color: white; }
         .obj-label-sm { font-size: 10px; color: #64748b; font-weight: bold; min-width: 45px; display: inline-block; }
-        #recIndicator { display: none; position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.8); color: white; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; animation: pulse 1s infinite; z-index: 1100; }
-        #exitPlayer { display: none; position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); color: white; padding: 5px 10px; border-radius: 4px; z-index: 2000; text-decoration: none; font-size: 10px; }
-        body.player-mode #exitPlayer { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="recIndicator">🔴 RECORDING...</div>
-    <a href="?" id="exitPlayer">✕ Exit Player Mode</a>
+    <div id="recIndicator" style="display:none; position:absolute; top:10px; right:10px; background:rgba(239,68,68,0.8); color:white; padding:4px 10px; border-radius:20px; font-size:10px; font-weight:bold; z-index:1100;">🔴 RECORDING...</div>
+    <a href="?" id="exitPlayer" style="display:none; position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,0.5); color:white; padding:5px 10px; border-radius:4px; z-index:2000; text-decoration:none; font-size:10px;">✕ Exit Player Mode</a>
 
     <div class="top-area">
         <div class="sidebar">
             <div style="display:flex; justify-content:space-between; align-items:center; padding: 2px;">
-                <h3 style="font-size:12px; margin:0;">Animator Pro v42.8</h3>
+                <h3 style="font-size:12px; margin:0;">Animator Pro v42.9</h3>
                 <button class="btn-s" onclick="undo()">↩ Undo</button>
             </div>
 
@@ -101,8 +98,8 @@
                 <div class="accordion-header" onclick="toggleAcc('acc-proj')">PROJECT FILES 📁 <span>▼</span></div>
                 <div class="accordion-content" id="acc-proj">
                     <div style="display:flex; gap:4px; margin-bottom:8px;">
-                        <button class="btn-p" style="flex:1;" onclick="exportProject()">💾 Save File</button>
-                        <button class="btn-s" style="flex:1;" onclick="importProject()">📂 Load File</button>
+                        <button class="btn-p" style="flex:1;" onclick="exportProject()">💾 Save</button>
+                        <button class="btn-s" style="flex:1;" onclick="importProject()">📂 Load</button>
                     </div>
                     <p style="font-size:10px; margin:0;">Canvas Background:</p>
                     <input type="file" id="bgFile" accept="image/*" style="font-size:9px; width:100%;">
@@ -130,6 +127,10 @@
                             <div style="display:flex; gap:5px; margin-bottom:5px;">
                                 <span class="obj-label-sm">X:</span><input type="text" id="pPosX" class="num-in" oninput="sync('pPosX')">
                                 <span class="obj-label-sm">Y:</span><input type="text" id="pPosY" class="num-in" oninput="sync('pPosY')">
+                            </div>
+                            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                                <span class="obj-label-sm">Scale X:</span><input type="text" id="pScaleX" class="num-in" step="0.1" oninput="sync('pScaleX')">
+                                <span class="obj-label-sm">Scale Y:</span><input type="text" id="pScaleY" class="num-in" step="0.1" oninput="sync('pScaleY')">
                             </div>
                             <div style="font-size:10px; margin-bottom:5px;">
                                 <span class="obj-label-sm">Rot:</span>
@@ -198,32 +199,15 @@
     const wrapper = document.getElementById('canvas-wrapper'), P_SEC = 40, TL_LABEL_W = 170, SNAP = 0.1;
     let objects = [], bg = { el: new Image(), data: null }, history = [], library = {};
     let activeId = null, selectedIndices = [], isPlaying = false, currentTime = 0, canvasScale = 1.0;
-    let dragInfo = { type: null }; let mediaRecorder = null, recordedChunks = []; let cropper = null;
+    let dragInfo = { type: null }; let mediaRecorder = null, recordedChunks = []; let cropper = null; let clipObj = null;
 
     function init() {
         canvas.width = 800; canvas.height = 800;
-        setupKeyboard(); setupZoom(); setupResizer(); initLibraryUI();
-        setupBackgroundListener(); // 🚀 背景選択リスナーをセット
+        setupKeyboard(); setupZoom(); setupResizer(); initLibraryUI(); setupBackgroundListener();
         checkUrlParams(); draw(); updateTimeline();
     }
 
-    // --- 🖼️ 背景画像読み込みロジック ---
-    function setupBackgroundListener() {
-        document.getElementById('bgFile').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                saveHistory(); // 念のためUndoできるように
-                bg.data = ev.target.result;
-                bg.el = new Image();
-                bg.el.onload = () => draw();
-                bg.el.src = bg.data;
-            };
-            reader.readAsDataURL(file);
-        };
-    }
-
+    // --- 🛡️ UI & Library ---
     function initLibraryUI() {
         const grid = document.getElementById('assetGrid');
         if(!grid) return; grid.innerHTML = "";
@@ -259,6 +243,16 @@
         });
     };
 
+    function setupBackgroundListener() {
+        document.getElementById('bgFile').onchange = (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => { saveHistory(); bg.data = ev.target.result; bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; };
+            reader.readAsDataURL(file);
+        };
+    }
+
+    // --- 🚀 Load Logic ---
     async function checkUrlParams() {
         const hash = window.location.hash;
         if (hash.startsWith("#gist=")) {
@@ -268,14 +262,10 @@
                 if (target.startsWith("http")) { const res = await fetch(target); content = await res.text(); } 
                 else {
                     const res = await fetch(`https://api.github.com/gists/${target}`);
-                    const data = await res.json();
-                    const file = Object.values(data.files)[0];
-                    content = file.content;
+                    const data = await res.json(); const file = Object.values(data.files)[0]; content = file.content;
                     if (file.truncated || !content) { const rawRes = await fetch(file.raw_url); content = await rawRes.text(); }
                 }
-                document.body.classList.add("player-mode");
-                await performLoad(content);
-                setTimeout(() => play(), 1000);
+                document.body.classList.add("player-mode"); await performLoad(content); setTimeout(() => play(), 1000);
             } catch (e) { alert("Load error"); document.body.classList.remove("player-mode"); }
         } else if (hash.startsWith("#p=")) {
             try { const json = LZString.decompressFromEncodedURIComponent(hash.replace("#p=","")); document.body.classList.add("player-mode"); await performLoad(json); setTimeout(() => play(), 1000); } catch (e) {}
@@ -290,9 +280,10 @@
             bg.data = p.bgData;
             if(bg.data){ bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; }
             library = p.library || {}; initLibraryUI(); updateTimeline(); scrubTo(0); draw();
-        } catch (e) { console.error("JSON Error"); throw e; }
+        } catch (e) { console.error("JSON Error"); }
     }
 
+    // --- 🖱️ Core Logic ---
     function setupZoom() {
         document.getElementById('viewport').onwheel = (e) => {
             e.preventDefault();
@@ -318,26 +309,35 @@
             const o = objects.find(x=>x.id===activeId), r = canvas.getBoundingClientRect();
             const cp = { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
             dragInfo.initialPositions.forEach(i => { o.points[i.idx].x = i.x + (cp.x-dragInfo.canvasStartX); o.points[i.idx].y = i.y + (cp.y-dragInfo.canvasStartY); });
+            // 🚀 位置移動中にサイドパネルに即座に座標を反映
+            if(selectedIndices.length) syncSidePanelValues(activeId, selectedIndices[0]);
             draw();
         } else if(dragInfo.type === 'key') {
             const t = Math.round((e.clientX - rect.left)/P_SEC / SNAP) * SNAP;
             const o = objects.find(x=>x.id===dragInfo.objId);
             if(dragInfo.keyIdx === 0) o.delay = Math.max(0, t);
             else {
-                let pre = o.delay;
-                for(let i=0; i<dragInfo.keyIdx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait;
+                let pre = o.delay; for(let i=0; i<dragInfo.keyIdx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait;
                 o.points[dragInfo.keyIdx].dur = Math.max(0, t - pre);
             }
             updateTimeline(); scrubTo(t);
-            if(activeId === dragInfo.objId && selectedIndices.includes(dragInfo.keyIdx)) syncSidePanelTime(dragInfo.objId, dragInfo.keyIdx);
+            if(activeId === dragInfo.objId && selectedIndices.includes(dragInfo.keyIdx)) syncSidePanelValues(dragInfo.objId, dragInfo.keyIdx);
         }
     };
     window.onmouseup = () => { if(dragInfo.type && dragInfo.mouseMoved) saveHistory(); dragInfo.type = null; };
 
-    function syncSidePanelTime(id, idx) {
-        const o = objects.find(x=>x.id===id);
+    // 🚀 サイドパネルの全値を同期
+    function syncSidePanelValues(id, idx) {
+        const o = objects.find(x=>x.id===id); if(!o) return;
+        const p = o.points[idx];
+        document.getElementById('pPosX').value = Math.round(p.x);
+        document.getElementById('pPosY').value = Math.round(p.y);
+        document.getElementById('pScaleX').value = p.sx.toFixed(1);
+        document.getElementById('pScaleY').value = p.sy.toFixed(1);
+        document.getElementById('pRot').value = p.rot; document.getElementById('pRot_n').value = p.rot;
+        document.getElementById('pDur').value = p.dur; document.getElementById('pWait').value = p.wait;
         let total = o.delay; for(let i=0; i<idx; i++) total += (i===0?0:o.points[i].dur)+o.points[i].wait;
-        document.getElementById('pKeyTime').value = (total + (idx===0?0:o.points[idx].dur)).toFixed(1);
+        document.getElementById('pKeyTime').value = (total + (idx===0?0:p.dur)).toFixed(1);
     }
 
     canvas.onmousedown = (e) => {
@@ -382,7 +382,7 @@
             ctx.globalAlpha = st.a; const w = 60 * st.sx, h = 60 * st.sy;
             if(obj.type === 'image') { if(obj.el.src) ctx.drawImage(obj.el, -w/2, -h/2, w, h); }
             else if(obj.type === 'arrow') { ctx.fillStyle = obj.color; ctx.beginPath(); ctx.moveTo(-w/2,-h*0.2); ctx.lineTo(w*0.1,-h*0.2); ctx.lineTo(w*0.1,-h*0.5); ctx.lineTo(w/2,0); ctx.lineTo(w*0.1,h*0.5); ctx.lineTo(w*0.1,h*0.2); ctx.lineTo(-w/2,h*0.2); ctx.fill(); }
-            else { ctx.fillStyle = obj.color; ctx.beginPath(); if(obj.type==='circle') ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); else if(obj.type==='rect') ctx.rect(-w/2,-h/2,w,h); else if(obj.type==='tri') { ctx.moveTo(0,-h/2); ctx.lineTo(w/2,h/2); ctx.lineTo(-w/2,h/2); ctx.closePath(); } ctx.fill(); }
+            else { ctx.fillStyle = obj.color; ctx.beginPath(); if(obj.type==='circle') ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); else if(obj.type==='rect') ctx.rect(-w/2,-h/2,w,h); ctx.fill(); }
             ctx.restore();
             if(!temp && obj.id === activeId) {
                 ctx.save(); ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle="#94a3b8"; obj.points.forEach((p,i)=> i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
@@ -398,7 +398,7 @@
         if(idx!==null){ if(shift){ if(selectedIndices.includes(idx)) selectedIndices=selectedIndices.filter(i=>i!==idx); else selectedIndices.push(idx); } else selectedIndices=[idx]; }
         document.getElementById('objNameIn').value = o.name;
         document.getElementById('btnTrackLock').innerText = o.locked ? "🔒 Locked" : "🔓 Unlock";
-        if(selectedIndices.length){ syncSidePanelTime(activeId, selectedIndices[0]); }
+        if(selectedIndices.length){ syncSidePanelValues(activeId, selectedIndices[0]); }
         updateTimeline(); draw();
     }
 
@@ -417,12 +417,7 @@
             obj.points.forEach((p,i) => {
                 acc += (i===0?0:p.dur);
                 const dot=document.createElement('div'); dot.className=`timeline-key ${ (obj.id===activeId && selectedIndices.includes(i)) ? 'selected' : ''}`;
-                dot.style.left=(acc*P_SEC)+'px'; 
-                dot.onmousedown=(e)=>{
-                    e.stopPropagation(); 
-                    dragInfo={type:'key',objId:obj.id,keyIdx:i,startX:e.clientX}; 
-                    select(obj.id,i,e.shiftKey);
-                };
+                dot.style.left=(acc*P_SEC)+'px'; dot.onmousedown=(e)=>{ e.stopPropagation(); dragInfo={type:'key',objId:obj.id,keyIdx:i,startX:e.clientX}; select(obj.id,i,e.shiftKey); };
                 const tag=document.createElement('div'); tag.className='key-time-tag'; tag.innerText=acc.toFixed(1)+'s'; dot.appendChild(tag);
                 track.appendChild(dot); acc+=p.wait;
             });
@@ -433,35 +428,17 @@
 
     function addKeyAtTime(objId, targetT) {
         const o = objects.find(x => x.id === objId); if(!o || targetT < 0) return;
-        saveHistory();
-        let acc = o.delay, insertedIdx = -1;
-        if(targetT < o.delay) {
-            o.points.unshift({...o.points[0], dur:0, wait: o.delay - targetT});
-            o.delay = targetT; insertedIdx = 0;
-        } else {
+        saveHistory(); let acc = o.delay, insertedIdx = -1;
+        if(targetT < o.delay) { o.points.unshift({...o.points[0], dur:0, wait: o.delay - targetT}); o.delay = targetT; insertedIdx = 0; }
+        else {
             for(let i=0; i < o.points.length; i++) {
                 const p = o.points[i], d = (i===0?0:p.dur);
-                if(targetT < acc + d) { 
-                    const ratio = (targetT - acc) / d;
-                    const newState = lerp(o.points[i-1], p, ratio);
-                    o.points.splice(i, 0, {...newState, dur: targetT - acc, wait: 0});
-                    p.dur = (acc + d) - targetT; insertedIdx = i; break;
-                }
-                acc += d;
-                if(targetT <= acc + p.wait) { 
-                    const remWait = (acc + p.wait) - targetT;
-                    p.wait = targetT - acc;
-                    o.points.splice(i+1, 0, {...p, dur: 0, wait: remWait});
-                    insertedIdx = i+1; break;
-                }
+                if(targetT < acc + d) { const ratio = (targetT - acc) / d; const newState = lerp(o.points[i-1], p, ratio); o.points.splice(i, 0, {...newState, dur: targetT - acc, wait: 0}); p.dur = (acc + d) - targetT; insertedIdx = i; break; }
+                acc += d; if(targetT <= acc + p.wait) { const remWait = (acc + p.wait) - targetT; p.wait = targetT - acc; o.points.splice(i+1, 0, {...p, dur: 0, wait: remWait}); insertedIdx = i+1; break; }
                 acc += p.wait;
             }
         }
-        if(insertedIdx === -1) {
-            const last = o.points[o.points.length-1];
-            o.points.push({...last, dur: targetT - acc, wait: 0.5});
-            insertedIdx = o.points.length - 1;
-        }
+        if(insertedIdx === -1) { const last = o.points[o.points.length-1]; o.points.push({...last, dur: targetT - acc, wait: 0.5}); insertedIdx = o.points.length - 1; }
         select(objId, insertedIdx); updateTimeline();
     }
 
@@ -476,13 +453,10 @@
     function sync(id) {
         if(!activeId || !selectedIndices.length) return; const o = objects.find(x=>x.id===activeId), p = o.points[selectedIndices[0]];
         const el = document.getElementById(id), v = parseFloat(el.value); if(isNaN(v)) return;
-        if(id==='pKeyTime') {
-            const idx = selectedIndices[0];
-            let pre = 0; if(idx > 0) { pre = o.delay; for(let i=0; i<idx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait; }
-            if(idx === 0) o.delay = Math.max(0, v);
-            else p.dur = Math.max(0, v - pre);
-        }
-        else if(id==='pPosX') p.x=v; else if(id==='pPosY') p.y=v; else if(id==='pRot'||id==='pRot_n'){p.rot=v;document.getElementById('pRot').value=v;document.getElementById('pRot_n').value=v;}
+        if(id==='pKeyTime') { const idx = selectedIndices[0]; let pre = 0; if(idx > 0) { pre = o.delay; for(let i=0; i<idx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait; } if(idx === 0) o.delay = Math.max(0, v); else p.dur = Math.max(0, v - pre); }
+        else if(id==='pPosX') p.x=v; else if(id==='pPosY') p.y=v; 
+        else if(id==='pScaleX') p.sx=v; else if(id==='pScaleY') p.sy=v; // 🚀 スケール同期
+        else if(id==='pRot'||id==='pRot_n'){p.rot=v;document.getElementById('pRot').value=v;document.getElementById('pRot_n').value=v;}
         else if(id==='pDur') p.dur=v; else if(id==='pWait') p.wait=v;
         draw(); updateTimeline();
     }
@@ -490,17 +464,20 @@
     function delObj() { if(!activeId) return; objects=objects.filter(x=>x.id!==activeId); select(null); updateTimeline(); }
     function deleteKey() { if(!activeId || !selectedIndices.length) return; saveHistory(); const o=objects.find(x=>x.id===activeId); o.points=o.points.filter((_,i)=>!selectedIndices.includes(i)); selectedIndices=[]; select(activeId); }
     function addObj(type) { saveHistory(); const id=Date.now(); objects.unshift({id, type, name:type, color:'#3b82f6', visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1,sy:1,a:1}]}); select(id, 0); }
-    function triggerFile() { document.getElementById('iconFile').click(); }
-    function generateShareUrl() { const p = { objects: objects.map(o => ({...o, el:null})), bgData: bg.data, library }; const comp = LZString.compressToEncodedURIComponent(JSON.stringify(p)); navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#p=" + comp).then(() => alert("Copied Link!")); }
-    function loadFromGistPrompt() { const id = prompt("Gist ID or Raw URL:"); if(id) { window.location.hash = "#gist=" + id; location.reload(); } }
+    function generateShareUrl() { const p = { objects: objects.map(o => ({...o, el:null})), bgData: bg.data, library }; const comp = LZString.compressToEncodedURIComponent(JSON.stringify(p)); navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#p=" + comp).then(() => alert("Copied!")); }
+    function loadFromGistPrompt() { const id = prompt("Gist ID:"); if(id) { window.location.hash = "#gist=" + id; location.reload(); } }
     function exportImage() { const a=document.createElement('a'); a.download="img.png"; a.href=canvas.toDataURL(); a.click(); }
     function exportProject() { const p={objects:objects.map(o=>({...o, el:null})), bgData:bg.data, library}; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(p)], {type:'application/json'})); a.download=`anim.json`; a.click(); }
     function importProject() { document.getElementById('loadInput').click(); }
     document.getElementById('loadInput').onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=(ev)=>performLoad(ev.target.result); r.readAsText(f); };
     function copyProjectData() { const p={objects:objects.map(o=>({...o, el:null})), bgData:bg.data, library}; navigator.clipboard.writeText(JSON.stringify(p)).then(()=>alert("Data Copied!")); }
-    function setupKeyboard() { window.onkeydown = (e) => { if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return; if (e.key === 'Delete' || e.key === 'Backspace') deleteKey(); }; }
+    function setupKeyboard() { window.onkeydown = (e) => { if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return; if (e.key === 'Delete' || e.key === 'Backspace') deleteKey(); if (e.ctrlKey && e.key === 'c') { if(activeId){ const o=objects.find(x=>x.id===activeId); clipObj = JSON.parse(JSON.stringify({...o, el:null})); } } if (e.ctrlKey && e.key === 'v') { if(clipObj){ saveHistory(); const n = JSON.parse(JSON.stringify(clipObj)); n.id = Date.now(); n.name += "_copy"; if(n.type==='image'){ n.el=new Image(); n.el.src=n.src; } objects.unshift(n); select(n.id, 0); } } }; }
     function setupResizer() { const r=document.getElementById('timelineResizer'), c=document.querySelector('.timeline-container'); r.onmousedown=(e)=>{ const sy=e.clientY, sh=c.offsetHeight; const mv=(me)=>{c.style.height=Math.max(50, sh+(sy-me.clientY))+'px';}; const up=()=>{window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up);}; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); }; }
-    function toggleRecord() { /* 内部ロジック維持 */ }
+    function toggleRecord() { /* WebM録画維持 */ }
+    function triggerFile() { document.getElementById('iconFile').click(); }
+    document.getElementById('iconFile').onchange=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>openEditor(ev.target.result);r.readAsDataURL(f);};
+    function openEditor(u){document.getElementById('editorModal').style.display='flex';document.getElementById('imgEdit').src=u;if(cropper)cropper.destroy();cropper=new Cropper(document.getElementById('imgEdit'),{viewMode:1,autoCropArea:1});}
+    function finishEdit() { const data = cropper.getCroppedCanvas().toDataURL(); const imgEl = new Image(); imgEl.onload = () => { const newId = Date.now(); objects.unshift({id:newId, type:'image', el:imgEl, src:data, name:"Image_"+(objects.length+1), visible:true, locked:false, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1,sy:1,a:1}], delay:0}); select(newId, 0); draw(); document.getElementById('editorModal').style.display='none'; }; imgEl.src = data; }
 
     window.onload = init;
 </script>
