@@ -2,50 +2,38 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Animator Pro Ultra v43.0 (Perfect Layering)</title>
+    <title>Animator Pro Ultra v43.1 (FF14 Comet Edition)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         :root { --primary: #2563eb; --active-key: #3b82f6; --success: #10b981; --danger: #ef4444; --dark: #1e293b; --bg: #f1f5f9; --border: #e2e8f0; --warning: #f59e0b; }
         body { font-family: 'Inter', sans-serif; display: flex; flex-direction: column; height: 100vh; background: var(--bg); margin: 0; overflow: hidden; color: #334155; }
-        
         body.player-mode .sidebar, body.player-mode #timelineResizer, body.player-mode .timeline-container { display: none !important; }
         body.player-mode .top-area { padding: 0; }
         body.player-mode .canvas-area { background: #000; border-radius: 0; flex: 1; }
-
         .top-area { display: flex; flex: 1; min-height: 0; padding: 5px; gap: 8px; overflow: hidden; }
         .sidebar { background: white; width: 340px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow-y: auto; padding: 10px; gap: 8px; z-index: 500; }
         .canvas-area { flex: 1; background: #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; cursor: grab; }
         #canvas-wrapper { background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; line-height: 0; transform-origin: center center; }
         canvas { display: block; }
-        
         #timelineResizer { height: 6px; background: #e2e8f0; cursor: ns-resize; transition: background 0.2s; z-index: 600; flex-shrink: 0; }
-        
-        .timeline-container { 
-            height: 260px; min-height: 50px; background: white; border-top: 1px solid var(--border); 
-            display: flex; flex-direction: column; z-index: 400; flex-shrink: 0; overflow: hidden;
-            user-select: none; -webkit-user-select: none;
-        }
+        .timeline-container { height: 260px; min-height: 50px; background: white; border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 400; flex-shrink: 0; overflow: hidden; user-select: none; -webkit-user-select: none; }
         .timeline-scroll-area { flex: 1; overflow: auto; position: relative; }
         .timeline-inner-width { width: 1800px; position: relative; } 
         .timeline-header-row { display: flex; background: #f8fafc; border-bottom: 1px solid var(--border); height: 30px; align-items: center; position: sticky; top: 0; z-index: 350; }
         .timeline-label-col { position: sticky; left: 0; width: 170px; min-width: 170px; border-right: 2px solid #cbd5e1; height: 100%; display: flex; align-items: center; padding-left: 10px; font-size: 10px; font-weight: bold; color: #64748b; background: #f1f5f9; z-index: 360; }
         .timeline-ruler { flex: 1; height: 100%; position: relative; cursor: crosshair; }
         .ruler-mark { position: absolute; top: 5px; font-size: 9px; border-left: 1px solid #cbd5e1; padding-left: 2px; height: 20px; color: #94a3b8; }
-        
         .timeline-row { display: flex; height: 42px; align-items: center; border-bottom: 1px solid #f1f5f9; background: #fff; position: relative; }
         .timeline-row.active { background: #eff6ff; }
         .timeline-row.dragging { opacity: 0.5; background: #e2e8f0; }
-
         .track-handle { position: sticky; left: 0; width: 170px; min-width: 170px; height: 100%; border-right: 2px solid #cbd5e1; display: flex; align-items: center; padding-left: 10px; font-size: 10px; cursor: grab; user-select: none; background: white; z-index: 200; gap: 6px; }
-        .timeline-row.active .track-handle { background: #eff6ff; }
         .timeline-track { flex: 1; height: 100%; position: relative; pointer-events: all; cursor: cell; z-index: 10; }
         .track-inner-line { position: absolute; top: 50%; left: 10px; right: 10px; height: 4px; background: #e2e8f0; border-radius: 2px; transform: translateY(-50%); pointer-events: none; }
         .timeline-key { position: absolute; width: 12px; height: 12px; background: white; border: 2px solid var(--primary); border-radius: 50%; top: 50%; transform: translate(-50%, -50%); cursor: ew-resize; z-index: 100; transition: scale 0.1s; }
         .timeline-key.selected { background: var(--active-key); scale: 1.3; border-color: white; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
         .key-time-tag { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 8px; color: var(--primary); font-weight: bold; pointer-events: none; white-space: nowrap; }
         .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); z-index: 1000; pointer-events: none; }
-        
         .accordion-item { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 5px; flex-shrink: 0; }
         .accordion-header { background: #f8fafc; padding: 8px 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; user-select: none; border-bottom: 1px solid var(--border); }
         .accordion-content { padding: 8px; background: #fff; }
@@ -64,96 +52,53 @@
     </style>
 </head>
 <body>
-
     <div id="recIndicator" style="display:none; position:absolute; top:10px; right:10px; background:rgba(239,68,68,0.8); color:white; padding:4px 10px; border-radius:20px; font-size:10px; font-weight:bold; z-index:1100;">🔴 RECORDING...</div>
     <a href="?" id="exitPlayer" style="display:none; position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,0.5); color:white; padding:5px 10px; border-radius:4px; z-index:2000; text-decoration:none; font-size:10px;">✕ Exit Player Mode</a>
 
     <div class="top-area">
         <div class="sidebar">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding: 2px;">
-                <h3 style="font-size:12px; margin:0;">Animator Pro v43.0</h3>
-                <button class="btn-s" onclick="undo()">↩ Undo</button>
-            </div>
-
+            <div style="display:flex; justify-content:space-between; align-items:center; padding: 2px;"><h3 style="font-size:12px; margin:0;">Animator Pro v43.1</h3><button class="btn-s" onclick="undo()">↩ Undo</button></div>
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAcc('acc-share')">SHARE & OUTPUT 📤 <span>▼</span></div>
                 <div class="accordion-content" id="acc-share">
                     <button class="btn-success" style="width:100%; padding:10px; margin-bottom:8px;" onclick="generateShareUrl()">🚀 Share via Compressed URL</button>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;">
-                        <button class="btn-p" onclick="copyProjectData()">📋 Copy Data</button>
-                        <button class="btn-warning" onclick="loadFromGistPrompt()">📥 Gist Load</button>
-                    </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-                        <button class="btn-s" onclick="exportImage()">📸 PNG</button>
-                        <button class="btn-danger" id="btnRecord" onclick="toggleRecord()">🎥 REC</button>
-                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:8px;"><button class="btn-p" onclick="copyProjectData()">📋 Copy Data</button><button class="btn-warning" onclick="loadFromGistPrompt()">📥 Gist Load</button></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"><button class="btn-s" onclick="exportImage()">📸 PNG</button><button class="btn-danger" id="btnRecord" onclick="toggleRecord()">🎥 REC</button></div>
                 </div>
             </div>
-
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAcc('acc-assets')">DEFAULT ICONS 🛡️ <span>▼</span></div>
-                <div class="accordion-content" id="acc-assets">
-                    <div class="asset-grid" id="assetGrid"></div>
-                    <input type="file" id="assetBatch" multiple style="font-size:9px; width:100%; margin-top:8px;">
-                </div>
+                <div class="accordion-content" id="acc-assets"><div class="asset-grid" id="assetGrid"></div><input type="file" id="assetBatch" multiple style="font-size:9px; width:100%; margin-top:8px;"></div>
             </div>
-
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAcc('acc-proj')">PROJECT FILES 📁 <span>▼</span></div>
                 <div class="accordion-content" id="acc-proj">
-                    <div style="display:flex; gap:4px; margin-bottom:8px;">
-                        <button class="btn-p" style="flex:1;" onclick="exportProject()">💾 Save</button>
-                        <button class="btn-s" style="flex:1;" onclick="importProject()">📂 Load</button>
-                    </div>
-                    <p style="font-size:10px; margin:0;">Canvas Background:</p>
-                    <input type="file" id="bgFile" accept="image/*" style="font-size:9px; width:100%;">
+                    <div style="display:flex; gap:4px; margin-bottom:8px;"><button class="btn-p" style="flex:1;" onclick="exportProject()">💾 Save</button><button class="btn-s" style="flex:1;" onclick="importProject()">📂 Load</button></div>
+                    <p style="font-size:10px; margin:0;">Canvas Background:</p><input type="file" id="bgFile" accept="image/*" style="font-size:9px; width:100%;">
                 </div>
             </div>
-
             <div class="accordion-item">
                 <div class="accordion-header" onclick="toggleAcc('acc-settings')">OBJECT SETTINGS <span>▼</span></div>
                 <div class="accordion-content" id="acc-settings">
                     <div id="settingsPanel" style="display:none;">
                         <div class="setting-card">
                             <input type="text" id="objNameIn" style="width:100%; padding:4px; font-size:11px;" oninput="syncName(this.value)">
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:5px;">
-                                <button class="btn-s" onclick="copyItem()">Copy</button>
-                                <button class="btn-s" onclick="pasteItem()">Paste</button>
-                                <button id="btnTrackLock" class="btn-s" onclick="toggleMainLock()">🔓 Lock</button>
-                                <button class="btn-danger" onclick="delObj()">Del</button>
-                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:5px;"><button class="btn-s" onclick="copyItem()">Copy</button><button class="btn-s" onclick="pasteItem()">Paste</button><button id="btnTrackLock" class="btn-s" onclick="toggleMainLock()">🔓 Lock</button><button class="btn-danger" onclick="delObj()">Del</button></div>
                         </div>
                         <div id="keySettings" class="setting-card">
-                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-                                <span class="obj-label-sm">Time(s):</span>
-                                <input type="text" id="pKeyTime" class="num-in" style="font-weight:bold; color:var(--primary);" oninput="sync('pKeyTime')">
-                            </div>
-                            <div style="display:flex; gap:5px; margin-bottom:5px;">
-                                <span class="obj-label-sm">X:</span><input type="text" id="pPosX" class="num-in" oninput="sync('pPosX')">
-                                <span class="obj-label-sm">Y:</span><input type="text" id="pPosY" class="num-in" oninput="sync('pPosY')">
-                            </div>
-                            <div style="display:flex; gap:5px; margin-bottom:5px;">
-                                <span class="obj-label-sm">Scale X:</span><input type="text" id="pScaleX" class="num-in" step="0.1" oninput="sync('pScaleX')">
-                                <span class="obj-label-sm">Scale Y:</span><input type="text" id="pScaleY" class="num-in" step="0.1" oninput="sync('pScaleY')">
-                            </div>
-                            <div style="font-size:10px; margin-bottom:5px;">
-                                <span class="obj-label-sm">Rot:</span>
-                                <input type="range" id="pRot" min="0" max="360" step="1" oninput="sync('pRot')"> 
-                                <input type="text" id="pRot_n" class="num-in" style="width:35px" oninput="sync('pRot_n')">
-                            </div>
-                            <div style="display:flex; gap:5px; margin-bottom:5px;">
-                                <span class="obj-label-sm">Dur:</span><input type="text" id="pDur" class="num-in" oninput="sync('pDur')">
-                                <span class="obj-label-sm">Wait:</span><input type="text" id="pWait" class="num-in" oninput="sync('pWait')">
-                            </div>
+                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;"><span class="obj-label-sm">Time(s):</span><input type="text" id="pKeyTime" class="num-in" style="font-weight:bold; color:var(--primary);" oninput="sync('pKeyTime')"></div>
+                            <div style="display:flex; gap:5px; margin-bottom:5px;"><span class="obj-label-sm">X:</span><input type="text" id="pPosX" class="num-in" oninput="sync('pPosX')"><span class="obj-label-sm">Y:</span><input type="text" id="pPosY" class="num-in" oninput="sync('pPosY')"></div>
+                            <div style="display:flex; gap:5px; margin-bottom:5px;"><span class="obj-label-sm">Scale X:</span><input type="text" id="pScaleX" class="num-in" step="0.1" oninput="sync('pScaleX')"><span class="obj-label-sm">Scale Y:</span><input type="text" id="pScaleY" class="num-in" step="0.1" oninput="sync('pScaleY')"></div>
+                            <div style="font-size:10px; margin-bottom:5px;"><span class="obj-label-sm">Rot:</span><input type="range" id="pRot" min="0" max="360" step="1" oninput="sync('pRot')"><input type="text" id="pRot_n" class="num-in" style="width:35px" oninput="sync('pRot_n')"></div>
+                            <div style="display:flex; gap:5px; margin-bottom:5px;"><span class="obj-label-sm">Dur:</span><input type="text" id="pDur" class="num-in" oninput="sync('pDur')"><span class="obj-label-sm">Wait:</span><input type="text" id="pWait" class="num-in" oninput="sync('pWait')"></div>
                             <button class="btn-danger" style="width:100%; margin-top:5px;" onclick="deleteKey()">Delete Key (Del)</button>
                         </div>
                     </div>
                     <div id="noSelectMsg" style="font-size:10px; color:#999; text-align:center; padding:10px;">Select a track or keyframe</div>
                 </div>
             </div>
-
             <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAcc('acc-add')">ADD ELEMENTS <span>▼</span></div>
+                <div class="accordion-header" onclick="toggleAcc('acc-add')">ADD ELEMENTS 🛡️ <span>▼</span></div>
                 <div class="accordion-content" id="acc-add">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
                         <button class="btn-warning" onclick="addComet()">Comet (M11S)</button>
@@ -164,39 +109,16 @@
                     </div>
                 </div>
             </div>
-
-            <div style="display:flex; gap:5px; margin-top:auto; padding-top:10px;">
-                <button class="btn-p" style="flex:2; font-size:14px; padding:12px;" onclick="play()">▶ PLAY</button>
-                <button class="btn-s" style="flex:1; background:#ef4444;" onclick="stopAnim()">■ STOP</button>
-            </div>
+            <div style="display:flex; gap:5px; margin-top:auto; padding-top:10px;"><button class="btn-p" style="flex:2; font-size:14px; padding:12px;" onclick="play()">▶ PLAY</button><button class="btn-s" style="flex:1; background:#ef4444;" onclick="stopAnim()">■ STOP</button></div>
         </div>
-
-        <div class="canvas-area" id="viewport">
-            <div id="canvas-wrapper"><canvas id="canvas"></canvas></div>
-        </div>
+        <div class="canvas-area" id="viewport"><div id="canvas-wrapper"><canvas id="canvas"></canvas></div></div>
     </div>
-
     <div id="timelineResizer"></div>
     <div class="timeline-container">
-        <div class="timeline-scroll-area">
-            <div class="timeline-inner-width">
-                <div class="timeline-header-row">
-                    <div class="timeline-label-col">TRACKS (Drag to Reorder)</div>
-                    <div class="timeline-ruler" id="timelineRuler" onmousedown="onTimelineDown(event)"></div>
-                </div>
-                <div id="timelineBody"><div class="playhead" id="playhead"></div></div>
-            </div>
-        </div>
+        <div class="timeline-scroll-area"><div class="timeline-inner-width"><div class="timeline-header-row"><div class="timeline-label-col">TRACKS (Drag to Reorder)</div><div class="timeline-ruler" id="timelineRuler" onmousedown="onTimelineDown(event)"></div></div><div id="timelineBody"><div class="playhead" id="playhead"></div></div></div></div>
     </div>
-
-    <div id="editorModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000;">
-        <div style="background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column;">
-            <div class="crop-container" style="width: 600px; height: 400px; background: #000;"><img id="imgEdit"></div>
-            <button class="btn-p" style="margin-top:10px;" onclick="finishEdit()">Apply</button>
-        </div>
-    </div>
-    <input type="file" id="iconFile" style="display:none">
-    <input type="file" id="loadInput" style="display:none">
+    <div id="editorModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000;"><div style="background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column;"><div class="crop-container" style="width: 600px; height: 400px; background: #000;"><img id="imgEdit"></div><button class="btn-p" style="margin-top:10px;" onclick="finishEdit()">Apply</button></div></div>
+    <input type="file" id="iconFile" style="display:none"><input type="file" id="loadInput" style="display:none">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
@@ -206,103 +128,15 @@
     let activeId = null, selectedIndices = [], isPlaying = false, currentTime = 0, canvasScale = 1.0;
     let dragInfo = { type: null }; let mediaRecorder = null, recordedChunks = []; let cropper = null; let clipObj = null;
 
-    function init() {
-        canvas.width = 800; canvas.height = 800;
-        setupKeyboard(); setupZoom(); setupResizer(); initLibraryUI(); setupBackgroundListener();
-        checkUrlParams(); draw(); updateTimeline();
-    }
-
-    // --- 🛡️ Library & Assets ---
-    function initLibraryUI() {
-        const grid = document.getElementById('assetGrid');
-        if(!grid) return; grid.innerHTML = "";
-        const names = ["D1", "D2", "D3", "D4", "H1", "H2", "MT", "ST", "タゲサ"];
-        names.forEach(name => {
-            const btn = document.createElement('button');
-            btn.className = 'btn-asset' + (library[name] ? ' loaded' : '');
-            btn.innerText = name; btn.onclick = () => addFromLibrary(name);
-            grid.appendChild(btn);
-        });
-    }
-
-    function addFromLibrary(name) {
-        if(!library[name]) return alert("Please upload icons first.");
-        const img = new Image();
-        img.onload = () => {
-            const id = Date.now();
-            objects.unshift({id, type:'image', el:img, src:library[name], name, visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1.2,sy:1.2,a:1}]});
-            select(id, 0); updateTimeline();
-        };
-        img.src = library[name];
-    }
-
-    document.getElementById('assetBatch').onchange = (e) => {
-        Array.from(e.target.files).forEach(file => {
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const names = ["D1", "D2", "D3", "D4", "H1", "H2", "MT", "ST", "タゲサ"];
-                const match = names.find(n => file.name.toUpperCase().includes(n));
-                if(match) { library[match] = ev.target.result; initLibraryUI(); }
-            };
-            r.readAsDataURL(file);
-        });
-    };
-
-    function setupBackgroundListener() {
-        document.getElementById('bgFile').onchange = (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => { saveHistory(); bg.data = ev.target.result; bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; };
-            reader.readAsDataURL(file);
-        };
-    }
-
-    // --- 🚀 Load Logic ---
-    async function checkUrlParams() {
-        const hash = window.location.hash;
-        if (hash.startsWith("#gist=")) {
-            const target = hash.replace("#gist=", "");
-            try {
-                let content = "";
-                if (target.startsWith("http")) { const res = await fetch(target); content = await res.text(); } 
-                else {
-                    const res = await fetch(`https://api.github.com/gists/${target}`);
-                    const data = await res.json(); const file = Object.values(data.files)[0]; content = file.content;
-                    if (file.truncated || !content) { const rawRes = await fetch(file.raw_url); content = await rawRes.text(); }
-                }
-                document.body.classList.add("player-mode"); await performLoad(content); setTimeout(() => play(), 1000);
-            } catch (e) { alert("Load error"); document.body.classList.remove("player-mode"); }
-        } else if (hash.startsWith("#p=")) {
-            try { const json = LZString.decompressFromEncodedURIComponent(hash.replace("#p=","")); document.body.classList.add("player-mode"); await performLoad(json); setTimeout(() => play(), 1000); } catch (e) {}
-        }
-    }
-
-    async function performLoad(jsonData) {
-        try {
-            const p = JSON.parse(jsonData);
-            objects = p.objects;
-            for(let o of objects) { if(o.type === 'image') { o.el = new Image(); o.el.src = o.src; } }
-            bg.data = p.bgData;
-            if(bg.data){ bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; }
-            library = p.library || {}; initLibraryUI(); updateTimeline(); scrubTo(0); draw();
-        } catch (e) { console.error("JSON Error"); }
-    }
-
-    // --- 🖱️ Core interaction ---
-    function setupZoom() {
-        document.getElementById('viewport').onwheel = (e) => {
-            e.preventDefault();
-            canvasScale = Math.min(Math.max(0.1, canvasScale + (e.deltaY > 0 ? -0.1 : 0.1)), 5);
-            wrapper.style.transform = `scale(${canvasScale})`;
-        };
-    }
-
-    function onTimelineDown(e) {
-        e.preventDefault();
-        const rect = document.getElementById('timelineRuler').getBoundingClientRect();
-        dragInfo = { type: 'playhead', startX: e.clientX };
-        currentTime = Math.max(0, (e.clientX - rect.left) / P_SEC); scrubTo(currentTime);
-    }
+    function init() { canvas.width = 800; canvas.height = 800; setupKeyboard(); setupZoom(); setupResizer(); initLibraryUI(); setupBackgroundListener(); checkUrlParams(); draw(); updateTimeline(); }
+    function initLibraryUI() { const grid = document.getElementById('assetGrid'); if(!grid) return; grid.innerHTML = ""; const names = ["D1", "D2", "D3", "D4", "H1", "H2", "MT", "ST", "タゲサ"]; names.forEach(name => { const btn = document.createElement('button'); btn.className = 'btn-asset' + (library[name] ? ' loaded' : ''); btn.innerText = name; btn.onclick = () => addFromLibrary(name); grid.appendChild(btn); }); }
+    function addFromLibrary(name) { if(!library[name]) return alert("Please upload icons first."); const img = new Image(); img.onload = () => { const id = Date.now(); objects.unshift({id, type:'image', el:img, src:library[name], name, visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1.2,sy:1.2,a:1}]}); select(id, 0); updateTimeline(); }; img.src = library[name]; }
+    document.getElementById('assetBatch').onchange = (e) => { Array.from(e.target.files).forEach(file => { const r = new FileReader(); r.onload = (ev) => { const names = ["D1", "D2", "D3", "D4", "H1", "H2", "MT", "ST", "タゲサ"]; const match = names.find(n => file.name.toUpperCase().includes(n)); if(match) { library[match] = ev.target.result; initLibraryUI(); } }; r.readAsDataURL(file); }); };
+    function setupBackgroundListener() { document.getElementById('bgFile').onchange = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { saveHistory(); bg.data = ev.target.result; bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; }; reader.readAsDataURL(file); }; }
+    async function checkUrlParams() { const hash = window.location.hash; if (hash.startsWith("#gist=")) { const target = hash.replace("#gist=", ""); try { let content = ""; if (target.startsWith("http")) { const res = await fetch(target); content = await res.text(); } else { const res = await fetch(`https://api.github.com/gists/${target}`); const data = await res.json(); const file = Object.values(data.files)[0]; content = file.content; if (file.truncated || !content) { const rawRes = await fetch(file.raw_url); content = await rawRes.text(); } } document.body.classList.add("player-mode"); await performLoad(content); setTimeout(() => play(), 1000); } catch (e) { alert("Load error"); document.body.classList.remove("player-mode"); } } else if (hash.startsWith("#p=")) { try { const json = LZString.decompressFromEncodedURIComponent(hash.replace("#p=","")); document.body.classList.add("player-mode"); await performLoad(json); setTimeout(() => play(), 1000); } catch (e) {} } }
+    async function performLoad(jsonData) { try { const p = JSON.parse(jsonData); objects = p.objects; for(let o of objects) { if(o.type === 'image') { o.el = new Image(); o.el.src = o.src; } } bg.data = p.bgData; if(bg.data){ bg.el = new Image(); bg.el.onload = () => draw(); bg.el.src = bg.data; } library = p.library || {}; initLibraryUI(); updateTimeline(); scrubTo(0); draw(); } catch (e) { console.error("JSON Error"); } }
+    function setupZoom() { document.getElementById('viewport').onwheel = (e) => { e.preventDefault(); canvasScale = Math.min(Math.max(0.1, canvasScale + (e.deltaY > 0 ? -0.1 : 0.1)), 5); wrapper.style.transform = `scale(${canvasScale})`; }; }
+    function onTimelineDown(e) { e.preventDefault(); const rect = document.getElementById('timelineRuler').getBoundingClientRect(); dragInfo = { type: 'playhead', startX: e.clientX }; currentTime = Math.max(0, (e.clientX - rect.left) / P_SEC); scrubTo(currentTime); }
 
     window.onmousemove = (e) => {
         if(!dragInfo.type || isPlaying) return;
@@ -317,112 +151,48 @@
             if(selectedIndices.length) syncSidePanelValues(activeId, selectedIndices[0]);
             draw();
         } else if(dragInfo.type === 'key') {
-            const t = Math.round((e.clientX - rect.left)/P_SEC / SNAP) * SNAP;
             const o = objects.find(x=>x.id===dragInfo.objId);
-            if(dragInfo.keyIdx === 0) o.delay = Math.max(0, t);
-            else {
-                let pre = o.delay; for(let i=0; i<dragInfo.keyIdx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait;
-                o.points[dragInfo.keyIdx].dur = Math.max(0, t - pre);
+            const newT = Math.max(0, Math.round((e.clientX - rect.left) / P_SEC / SNAP) * SNAP);
+            if(dragInfo.keyIdx === 0) {
+                o.delay = newT;
+            } else {
+                let prevTotal = o.delay;
+                for(let i=0; i < dragInfo.keyIdx; i++) {
+                    prevTotal += (i === 0 ? 0 : o.points[i].dur) + o.points[i].wait;
+                }
+                o.points[dragInfo.keyIdx].dur = Math.max(0, newT - prevTotal);
             }
-            updateTimeline(); scrubTo(t);
+            updateTimeline();
+            scrubTo(newT);
             if(activeId === dragInfo.objId && selectedIndices.includes(dragInfo.keyIdx)) syncSidePanelValues(dragInfo.objId, dragInfo.keyIdx);
         }
     };
     window.onmouseup = () => { if(dragInfo.type && dragInfo.mouseMoved) saveHistory(); dragInfo.type = null; };
 
-    function syncSidePanelValues(id, idx) {
-        const o = objects.find(x=>x.id===id); if(!o) return;
-        const p = o.points[idx];
-        document.getElementById('pPosX').value = Math.round(p.x);
-        document.getElementById('pPosY').value = Math.round(p.y);
-        document.getElementById('pScaleX').value = p.sx.toFixed(1);
-        document.getElementById('pScaleY').value = p.sy.toFixed(1);
-        document.getElementById('pRot').value = p.rot; document.getElementById('pRot_n').value = p.rot;
-        document.getElementById('pDur').value = p.dur; document.getElementById('pWait').value = p.wait;
-        let total = o.delay; for(let i=0; i<idx; i++) total += (i===0?0:o.points[i].dur)+o.points[i].wait;
-        document.getElementById('pKeyTime').value = (total + (idx===0?0:p.dur)).toFixed(1);
-    }
-
-    canvas.onmousedown = (e) => {
-        if(isPlaying || !activeId) return;
-        const r = canvas.getBoundingClientRect(), pos = { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
-        const o = objects.find(x=>x.id===activeId);
-        let hitIdx = o.points.findIndex(p => Math.hypot(p.x-pos.x, p.y-pos.y) < 20);
-        if(hitIdx !== -1) {
-            select(activeId, hitIdx, e.shiftKey);
-            if (!o.locked) dragInfo = { type:'canvas', canvasStartX:pos.x, canvasStartY:pos.y, initialPositions:selectedIndices.map(idx=>({idx, x:o.points[idx].x, y:o.points[idx].y})) };
-        } else if(!o.locked) {
-            saveHistory(); const last = o.points[o.points.length-1];
-            o.points.push({x:pos.x, y:pos.y, rot:last.rot, dur:1, wait:0.5, sx:last.sx, sy:last.sy, a:last.a});
-            select(activeId, o.points.length-1);
-        }
-    };
-
-    function scrubTo(t) {
-        currentTime = t; document.getElementById('playhead').style.left = (TL_LABEL_W + t * P_SEC) + 'px';
-        let s = {};
-        objects.forEach(obj => {
-            let lt = t - obj.delay; if(lt < 0) { s[obj.id] = null; return; }
-            let acc = 0;
-            for(let i=0; i<obj.points.length; i++){
-                const p = obj.points[i], d = (i === 0) ? 0 : p.dur;
-                if(lt <= acc + d) { s[obj.id] = lerp(obj.points[i-1] || p, p, d === 0 ? 1 : (lt-acc)/d); return; }
-                acc += d; if(lt <= acc+p.wait) { s[obj.id] = p; return; } acc += p.wait;
-            }
-            s[obj.id] = obj.points[obj.points.length-1];
-        });
-        draw(s);
-    }
+    function syncSidePanelValues(id, idx) { const o = objects.find(x=>x.id===id); if(!o) return; const p = o.points[idx]; document.getElementById('pPosX').value = Math.round(p.x); document.getElementById('pPosY').value = Math.round(p.y); document.getElementById('pScaleX').value = p.sx.toFixed(1); document.getElementById('pScaleY').value = p.sy.toFixed(1); document.getElementById('pRot').value = p.rot; document.getElementById('pRot_n').value = p.rot; document.getElementById('pDur').value = p.dur; document.getElementById('pWait').value = p.wait; let total = o.delay; for(let i=0; i<idx; i++) total += (i===0?0:o.points[i].dur)+o.points[i].wait; document.getElementById('pKeyTime').value = (total + (idx===0?0:p.dur)).toFixed(1); }
+    canvas.onmousedown = (e) => { if(isPlaying || !activeId) return; const r = canvas.getBoundingClientRect(), pos = { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) }; const o = objects.find(x=>x.id===activeId); let hitIdx = o.points.findIndex(p => Math.hypot(p.x-pos.x, p.y-pos.y) < 20); if(hitIdx !== -1) { select(activeId, hitIdx, e.shiftKey); if (!o.locked) dragInfo = { type:'canvas', canvasStartX:pos.x, canvasStartY:pos.y, initialPositions:selectedIndices.map(idx=>({idx, x:o.points[idx].x, y:o.points[idx].y})) }; } else if(!o.locked) { saveHistory(); const last = o.points[o.points.length-1]; o.points.push({x:pos.x, y:pos.y, rot:last.rot, dur:1, wait:0.5, sx:last.sx, sy:last.sy, a:last.a}); select(activeId, o.points.length-1); } };
+    function scrubTo(t) { currentTime = t; document.getElementById('playhead').style.left = (TL_LABEL_W + t * P_SEC) + 'px'; let s = {}; objects.forEach(obj => { let lt = t - obj.delay; if(lt < 0) { s[obj.id] = null; return; } let acc = 0; for(let i=0; i<obj.points.length; i++){ const p = obj.points[i], d = (i === 0) ? 0 : p.dur; if(lt <= acc + d) { s[obj.id] = lerp(obj.points[i-1] || p, p, d === 0 ? 1 : (lt-acc)/d); return; } acc += d; if(lt <= acc+p.wait) { s[obj.id] = p; return; } acc += p.wait; } s[obj.id] = obj.points[obj.points.length-1]; }); draw(s); }
 
     function draw(temp = null) {
         ctx.clearRect(0,0,canvas.width,canvas.height);
         if(bg.el.src) ctx.drawImage(bg.el, 0,0,canvas.width,canvas.height);
         else { ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height); }
-        // 🚀 重なり順：配列の最後(bottom)から描画＝最初(top)が一番手前
         [...objects].reverse().forEach(obj => {
             if(!obj.visible) return;
             const st = temp ? temp[obj.id] : obj.points[0]; if(!st) return;
             ctx.save(); ctx.translate(st.x, st.y); ctx.rotate(st.rot * Math.PI / 180);
             ctx.globalAlpha = st.a; const w = 60 * st.sx, h = 60 * st.sy;
-            if(obj.type === 'image'){ 
-                if(obj.el.src) ctx.drawImage(obj.el, -w/2, -h/2, w, h); 
-            } 
-            else if (obj.type === 'comet') { // ★image の外（else if）に出す
+            if(obj.type === 'image'){ if(obj.el.src) ctx.drawImage(obj.el, -w/2, -h/2, w, h); } 
+            else if (obj.type === 'comet') {
                 const isLanded = st.a >= 1.0; 
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(0, 0, 30 * st.sx, 0, Math.PI * 2);
-                if (isLanded) {
-                    ctx.fillStyle = "#ffffea";
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = "#fffb00";
-                } else {
-                    ctx.fillStyle = "rgba(255, 140, 0, " + (st.a * 0.6) + ")";
-                    ctx.strokeStyle = "rgba(255, 69, 0, 0.8)";
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                }
-                ctx.fill();
-                ctx.restore();
-            } 
-            else if(obj.type === 'arrow') { 
-                ctx.fillStyle = obj.color; 
-                ctx.beginPath(); 
-                ctx.moveTo(-w/2,-h*0.2); 
-                ctx.lineTo(w*0.1,-h*0.2); 
-                ctx.lineTo(w*0.1,-h*0.5); 
-                ctx.lineTo(w/2,0); 
-                ctx.lineTo(w*0.1,h*0.5); 
-                ctx.lineTo(w*0.1,h*0.2); 
-                ctx.lineTo(-w/2,h*0.2); 
-                ctx.fill(); 
-            }
-            else { 
-                ctx.fillStyle = obj.color; 
-                ctx.beginPath(); 
-                if(obj.type==='circle') ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); 
-                else if(obj.type==='rect') ctx.rect(-w/2,-h/2,w,h); 
-                ctx.fill(); 
+                ctx.save(); ctx.beginPath(); ctx.arc(0, 0, 30 * st.sx, 0, Math.PI * 2);
+                if (isLanded) { ctx.fillStyle = "#ffffea"; ctx.shadowBlur = 15; ctx.shadowColor = "#fffb00"; } 
+                else { ctx.fillStyle = "rgba(255, 140, 0, " + (st.a * 0.6) + ")"; ctx.strokeStyle = "rgba(255, 69, 0, 0.8)"; ctx.lineWidth = 3; ctx.stroke(); }
+                ctx.fill(); ctx.restore();
+            } else if(obj.type === 'arrow') {
+                ctx.fillStyle = obj.color; ctx.beginPath(); ctx.moveTo(-w/2,-h*0.2); ctx.lineTo(w*0.1,-h*0.2); ctx.lineTo(w*0.1,-h*0.5); ctx.lineTo(w/2,0); ctx.lineTo(w*0.1,h*0.5); ctx.lineTo(w*0.1,h*0.2); ctx.lineTo(-w/2,h*0.2); ctx.fill();
+            } else {
+                ctx.fillStyle = obj.color; ctx.beginPath(); if(obj.type==='circle') ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); else if(obj.type==='rect') ctx.rect(-w/2,-h/2,w,h); ctx.fill();
             }
             ctx.restore();
             if(!temp && obj.id === activeId) {
@@ -432,81 +202,9 @@
         });
     }
 
-    function select(id, idx=null, shift=false) {
-        if (id === null) { document.getElementById('settingsPanel').style.display='none'; document.getElementById('noSelectMsg').style.display='block'; return; }
-        activeId = id; const o = objects.find(x=>x.id===id);
-        document.getElementById('settingsPanel').style.display='block'; document.getElementById('noSelectMsg').style.display='none';
-        if(idx!==null){ if(shift){ if(selectedIndices.includes(idx)) selectedIndices=selectedIndices.filter(i=>i!==idx); else selectedIndices.push(idx); } else selectedIndices=[idx]; }
-        document.getElementById('objNameIn').value = o.name;
-        document.getElementById('btnTrackLock').innerText = o.locked ? "🔒 Locked" : "🔓 Unlock";
-        if(selectedIndices.length){ syncSidePanelValues(activeId, selectedIndices[0]); }
-        updateTimeline(); draw();
-    }
-
-    // --- 🎭 Timeline & Reordering ---
-    function updateTimeline() {
-        const body=document.getElementById('timelineBody'), ruler=document.getElementById('timelineRuler');
-        ruler.innerHTML=''; for(let i=0; i<41; i++){ const m=document.createElement('div'); m.className='ruler-mark'; m.style.left=(i*P_SEC)+'px'; m.innerText=i+'s'; ruler.appendChild(m); }
-        const head=document.getElementById('playhead'); body.innerHTML = ""; body.appendChild(head);
-        
-        objects.forEach((obj, idx) => {
-            const row=document.createElement('div'); 
-            row.className=`timeline-row ${obj.id===activeId?'active':''}`;
-            
-            // 🚀 トラック入れ替え用のドラッグ＆ドロップ
-            row.draggable = true;
-            row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', idx); row.classList.add('dragging'); };
-            row.ondragover = (e) => { e.preventDefault(); };
-            row.ondrop = (e) => {
-                e.preventDefault();
-                const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-                const toIdx = idx;
-                if(fromIdx === toIdx) return;
-                saveHistory();
-                const [moved] = objects.splice(fromIdx, 1);
-                objects.splice(toIdx, 0, moved);
-                updateTimeline(); draw();
-            };
-            row.ondragend = () => { row.classList.remove('dragging'); };
-
-            const label=document.createElement('div'); label.className='track-handle';
-            label.innerHTML=`<span onclick="objVisible(${obj.id})">${obj.visible?'👁':'🙈'}</span><span onclick="toggleMainLockByID(${obj.id})">${obj.locked?'🔒':'🔓'}</span><span style="flex:1;overflow:hidden">${obj.name}</span>`;
-            label.onclick=()=>select(obj.id);
-            
-            const track=document.createElement('div'); track.className='timeline-track'; track.innerHTML='<div class="track-inner-line"></div>';
-            track.onclick = (e) => { if(e.ctrlKey) { const r=track.getBoundingClientRect(); addKeyAtTime(obj.id, (e.clientX-r.left)/P_SEC); } };
-            
-            let acc=obj.delay;
-            obj.points.forEach((p,i) => {
-                acc += (i===0?0:p.dur);
-                const dot=document.createElement('div'); dot.className=`timeline-key ${ (obj.id===activeId && selectedIndices.includes(i)) ? 'selected' : ''}`;
-                dot.style.left=(acc*P_SEC)+'px'; 
-                dot.onmousedown=(e)=>{ e.stopPropagation(); dragInfo={type:'key',objId:obj.id,keyIdx:i,startX:e.clientX}; select(obj.id,i,e.shiftKey); };
-                const tag=document.createElement('div'); tag.className='key-time-tag'; tag.innerText=acc.toFixed(1)+'s'; dot.appendChild(tag);
-                track.appendChild(dot); acc+=p.wait;
-            });
-            row.appendChild(label); row.appendChild(track); body.appendChild(row);
-        });
-        scrubTo(currentTime);
-    }
-
-    function addKeyAtTime(objId, targetT) {
-        const o = objects.find(x => x.id === objId); if(!o || targetT < 0) return;
-        saveHistory(); let acc = o.delay, insertedIdx = -1;
-        if(targetT < o.delay) { o.points.unshift({...o.points[0], dur:0, wait: o.delay - targetT}); o.delay = targetT; insertedIdx = 0; }
-        else {
-            for(let i=0; i < o.points.length; i++) {
-                const p = o.points[i], d = (i===0?0:p.dur);
-                if(targetT < acc + d) { const ratio = (targetT - acc) / d; const newState = lerp(o.points[i-1], p, ratio); o.points.splice(i, 0, {...newState, dur: targetT - acc, wait: 0}); p.dur = (acc + d) - targetT; insertedIdx = i; break; }
-                acc += d; if(targetT <= acc + p.wait) { const remWait = (acc + p.wait) - targetT; p.wait = targetT - acc; o.points.splice(i+1, 0, {...p, dur: 0, wait: remWait}); insertedIdx = i+1; break; }
-                acc += p.wait;
-            }
-        }
-        if(insertedIdx === -1) { const last = o.points[o.points.length-1]; o.points.push({...last, dur: targetT - acc, wait: 0.5}); insertedIdx = o.points.length - 1; }
-        select(objId, insertedIdx); updateTimeline();
-    }
-
-    // --- Helpers ---
+    function select(id, idx=null, shift=false) { if (id === null) { document.getElementById('settingsPanel').style.display='none'; document.getElementById('noSelectMsg').style.display='block'; return; } activeId = id; const o = objects.find(x=>x.id===id); document.getElementById('settingsPanel').style.display='block'; document.getElementById('noSelectMsg').style.display='none'; if(idx!==null){ if(shift){ if(selectedIndices.includes(idx)) selectedIndices=selectedIndices.filter(i=>i!==idx); else selectedIndices.push(idx); } else selectedIndices=[idx]; } document.getElementById('objNameIn').value = o.name; document.getElementById('btnTrackLock').innerText = o.locked ? "🔒 Locked" : "🔓 Unlock"; if(selectedIndices.length){ syncSidePanelValues(activeId, selectedIndices[0]); } updateTimeline(); draw(); }
+    function updateTimeline() { const body=document.getElementById('timelineBody'), ruler=document.getElementById('timelineRuler'); ruler.innerHTML=''; for(let i=0; i<41; i++){ const m=document.createElement('div'); m.className='ruler-mark'; m.style.left=(i*P_SEC)+'px'; m.innerText=i+'s'; ruler.appendChild(m); } const head=document.getElementById('playhead'); body.innerHTML = ""; body.appendChild(head); objects.forEach((obj, idx) => { const row=document.createElement('div'); row.className=`timeline-row ${obj.id===activeId?'active':''}`; row.draggable = true; row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', idx); row.classList.add('dragging'); }; row.ondragover = (e) => { e.preventDefault(); }; row.ondrop = (e) => { e.preventDefault(); const fromIdx = parseInt(e.dataTransfer.getData('text/plain')); const toIdx = idx; if(fromIdx === toIdx) return; saveHistory(); const [moved] = objects.splice(fromIdx, 1); objects.splice(toIdx, 0, moved); updateTimeline(); draw(); }; row.ondragend = () => { row.classList.remove('dragging'); }; const label=document.createElement('div'); label.className='track-handle'; label.innerHTML=`<span onclick="objVisible(${obj.id})">${obj.visible?'👁':'🙈'}</span><span onclick="toggleMainLockByID(${obj.id})">${obj.locked?'🔒':'🔓'}</span><span style="flex:1;overflow:hidden">${obj.name}</span>`; label.onclick=()=>select(obj.id); const track=document.createElement('div'); track.className='timeline-track'; track.innerHTML='<div class="track-inner-line"></div>'; track.onclick = (e) => { if(e.ctrlKey) { const r=track.getBoundingClientRect(); addKeyAtTime(obj.id, (e.clientX-r.left)/P_SEC); } }; let acc=obj.delay; obj.points.forEach((p,i) => { acc += (i===0?0:p.dur); const dot=document.createElement('div'); dot.className=`timeline-key ${ (obj.id===activeId && selectedIndices.includes(i)) ? 'selected' : ''}`; dot.style.left=(acc*P_SEC)+'px'; dot.onmousedown=(e)=>{ e.stopPropagation(); dragInfo={type:'key',objId:obj.id,keyIdx:i,startX:e.clientX}; select(obj.id,i,e.shiftKey); }; const tag=document.createElement('div'); tag.className='key-time-tag'; tag.innerText=acc.toFixed(1)+'s'; dot.appendChild(tag); track.appendChild(dot); acc+=p.wait; }); row.appendChild(label); row.appendChild(track); body.appendChild(row); }); scrubTo(currentTime); }
+    function addKeyAtTime(objId, targetT) { const o = objects.find(x => x.id === objId); if(!o || targetT < 0) return; saveHistory(); let acc = o.delay, insertedIdx = -1; if(targetT < o.delay) { o.points.unshift({...o.points[0], dur:0, wait: o.delay - targetT}); o.delay = targetT; insertedIdx = 0; } else { for(let i=0; i < o.points.length; i++) { const p = o.points[i], d = (i===0?0:p.dur); if(targetT < acc + d) { const ratio = (targetT - acc) / d; const newState = lerp(o.points[i-1], p, ratio); o.points.splice(i, 0, {...newState, dur: targetT - acc, wait: 0}); p.dur = (acc + d) - targetT; insertedIdx = i; break; } acc += d; if(targetT <= acc + p.wait) { const remWait = (acc + p.wait) - targetT; p.wait = targetT - acc; o.points.splice(i+1, 0, {...p, dur: 0, wait: remWait}); insertedIdx = i+1; break; } acc += p.wait; } } if(insertedIdx === -1) { const last = o.points[o.points.length-1]; o.points.push({...last, dur: targetT - acc, wait: 0.5}); insertedIdx = o.points.length - 1; } select(objId, insertedIdx); updateTimeline(); }
     function lerp(p1, p2, t) { return { x:p1.x+(p2.x-p1.x)*t, y:p1.y+(p2.y-p1.y)*t, rot:p1.rot+(p2.rot-p1.rot)*t, sx:p1.sx+(p2.sx-p1.sx)*t, sy:p1.sy+(p2.sy-p1.sy)*t, a:p1.a+(p2.a-p1.a)*t }; }
     function play() { if(isPlaying) return; isPlaying=true; const start=performance.now()-currentTime*1000; function step(n){ if(!isPlaying) return; currentTime=(n-start)/1000; if(currentTime > 40){stopAnim();return;} scrubTo(currentTime); requestAnimationFrame(step); } requestAnimationFrame(step); }
     function stopAnim() { isPlaying=false; currentTime=0; scrubTo(0); }
@@ -516,40 +214,12 @@
     function toggleMainLockByID(id) { const o=objects.find(x=>x.id===id); o.locked=!o.locked; select(id); }
     function toggleMainLock() { if(!activeId) return; const o=objects.find(x=>x.id===activeId); o.locked=!o.locked; select(activeId); }
     function objVisible(id) { const o=objects.find(x=>x.id===id); o.visible=!o.visible; draw(); updateTimeline(); }
-    function sync(id) {
-        if(!activeId || !selectedIndices.length) return; const o = objects.find(x=>x.id===activeId), p = o.points[selectedIndices[0]];
-        const el = document.getElementById(id), v = parseFloat(el.value); if(isNaN(v)) return;
-        if(id==='pKeyTime') { const idx = selectedIndices[0]; let pre = 0; if(idx > 0) { pre = o.delay; for(let i=0; i<idx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait; } if(idx === 0) o.delay = Math.max(0, v); else p.dur = Math.max(0, v - pre); }
-        else if(id==='pPosX') p.x=v; else if(id==='pPosY') p.y=v; 
-        else if(id==='pScaleX') p.sx=v; else if(id==='pScaleY') p.sy=v;
-        else if(id==='pRot'||id==='pRot_n'){p.rot=v;document.getElementById('pRot').value=v;document.getElementById('pRot_n').value=v;}
-        else if(id==='pDur') p.dur=v; else if(id==='pWait') p.wait=v;
-        draw(); updateTimeline();
-    }
+    function sync(id) { if(!activeId || !selectedIndices.length) return; const o = objects.find(x=>x.id===activeId), p = o.points[selectedIndices[0]]; const el = document.getElementById(id), v = parseFloat(el.value); if(isNaN(v)) return; if(id==='pKeyTime') { const idx = selectedIndices[0]; let pre = 0; if(idx > 0) { pre = o.delay; for(let i=0; i<idx; i++) pre += (i===0?0:o.points[i].dur) + o.points[i].wait; } if(idx === 0) o.delay = Math.max(0, v); else p.dur = Math.max(0, v - pre); } else if(id==='pPosX') p.x=v; else if(id==='pPosY') p.y=v; else if(id==='pScaleX') p.sx=v; else if(id==='pScaleY') p.sy=v; else if(id==='pRot'||id==='pRot_n'){p.rot=v;document.getElementById('pRot').value=v;document.getElementById('pRot_n').value=v;} else if(id==='pDur') p.dur=v; else if(id==='pWait') p.wait=v; draw(); updateTimeline(); }
     function syncName(v) { if(activeId){ objects.find(x=>x.id===activeId).name=v; updateTimeline(); } }
     function delObj() { if(!activeId) return; objects=objects.filter(x=>x.id!==activeId); select(null); updateTimeline(); }
     function deleteKey() { if(!activeId || !selectedIndices.length) return; saveHistory(); const o=objects.find(x=>x.id===activeId); o.points=o.points.filter((_,i)=>!selectedIndices.includes(i)); selectedIndices=[]; select(activeId); }
     function addObj(type) { saveHistory(); const id=Date.now(); objects.unshift({id, type, name:type, color:'#3b82f6', visible:true, locked:false, delay:0, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1,sy:1,a:1}]}); select(id, 0); }
-    function addComet() {
-    saveHistory();
-    const id = Date.now();
-    objects.unshift({
-        id, 
-        type: 'comet', 
-        name: 'CometRain', 
-        visible: true, 
-        locked: false, 
-        delay: currentTime, // 現在の再生位置から開始
-        points: [
-            {x: 400, y: 400, rot: 0, dur: 0,   wait: 0.5, sx: 1.0, sy: 1.0, a: 0.5}, // 予兆開始
-            {x: 400, y: 400, rot: 0, dur: 0.5, wait: 0.0, sx: 1.0, sy: 1.0, a: 0.8}, // 収束（濃くなる）
-            {x: 400, y: 400, rot: 0, dur: 0.1, wait: 0.2, sx: 1.3, sy: 1.3, a: 1.0}  // 着弾（発光・拡大）
-        ]
-    });
-    select(id, 2); // 着弾した瞬間のキーを選択状態にする
-    updateTimeline();
-    draw();
-}
+    function addComet() { saveHistory(); const id = Date.now(); objects.unshift({ id, type: 'comet', name: 'CometRain', visible: true, locked: false, delay: currentTime, points: [ {x: 400, y: 400, rot: 0, dur: 0, wait: 0.5, sx: 1.0, sy: 1.0, a: 0.5}, {x: 400, y: 400, rot: 0, dur: 0.5, wait: 0.0, sx: 1.0, sy: 1.0, a: 0.8}, {x: 400, y: 400, rot: 0, dur: 0.1, wait: 0.2, sx: 1.3, sy: 1.3, a: 1.0} ] }); select(id, 2); updateTimeline(); draw(); }
     function generateShareUrl() { const p = { objects: objects.map(o => ({...o, el:null})), bgData: bg.data, library }; const comp = LZString.compressToEncodedURIComponent(JSON.stringify(p)); navigator.clipboard.writeText(window.location.origin + window.location.pathname + "#p=" + comp).then(() => alert("Copied!")); }
     function loadFromGistPrompt() { const id = prompt("Gist ID:"); if(id) { window.location.hash = "#gist=" + id; location.reload(); } }
     function exportImage() { const a=document.createElement('a'); a.download="img.png"; a.href=canvas.toDataURL(); a.click(); }
@@ -559,16 +229,12 @@
     function copyProjectData() { const p={objects:objects.map(o=>({...o, el:null})), bgData:bg.data, library}; navigator.clipboard.writeText(JSON.stringify(p)).then(()=>alert("Data Copied!")); }
     function setupKeyboard() { window.onkeydown = (e) => { if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return; if (e.key === 'Delete' || e.key === 'Backspace') deleteKey(); if (e.ctrlKey && e.key === 'c') { if(activeId){ const o=objects.find(x=>x.id===activeId); clipObj = JSON.parse(JSON.stringify({...o, el:null})); } } if (e.ctrlKey && e.key === 'v') { if(clipObj){ saveHistory(); const n = JSON.parse(JSON.stringify(clipObj)); n.id = Date.now(); n.name += "_copy"; if(n.type==='image'){ n.el=new Image(); n.el.src=n.src; } objects.unshift(n); select(n.id, 0); } } }; }
     function setupResizer() { const r=document.getElementById('timelineResizer'), c=document.querySelector('.timeline-container'); r.onmousedown=(e)=>{ const sy=e.clientY, sh=c.offsetHeight; const mv=(me)=>{c.style.height=Math.max(50, sh+(sy-me.clientY))+'px';}; const up=()=>{window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up);}; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); }; }
-    function toggleRecord() { /* WebM録画維持 */ }
+    function toggleRecord() { const btn = document.getElementById('btnRecord'), ind = document.getElementById('recIndicator'); if (mediaRecorder && mediaRecorder.state === "recording") { mediaRecorder.stop(); btn.innerText = "🎥 REC"; ind.style.display = "none"; } else { recordedChunks = []; const stream = canvas.captureStream(60); mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); mediaRecorder.ondataavailable = (e) => recordedChunks.push(e.data); mediaRecorder.onstop = () => { const blob = new Blob(recordedChunks, { type: 'video/webm' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `anim.webm`; a.click(); }; mediaRecorder.start(); btn.innerText = "■ Stop"; ind.style.display = "block"; currentTime = 0; play(); } }
     function triggerFile() { document.getElementById('iconFile').click(); }
     document.getElementById('iconFile').onchange=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>openEditor(ev.target.result);r.readAsDataURL(f);};
     function openEditor(u){document.getElementById('editorModal').style.display='flex';document.getElementById('imgEdit').src=u;if(cropper)cropper.destroy();cropper=new Cropper(document.getElementById('imgEdit'),{viewMode:1,autoCropArea:1});}
     function finishEdit() { const data = cropper.getCroppedCanvas().toDataURL(); const imgEl = new Image(); imgEl.onload = () => { const newId = Date.now(); objects.unshift({id:newId, type:'image', el:imgEl, src:data, name:"Image_"+(objects.length+1), visible:true, locked:false, points:[{x:400,y:400,rot:0,dur:0,wait:0.5,sx:1,sy:1,a:1}], delay:0}); select(newId, 0); draw(); document.getElementById('editorModal').style.display='none'; }; imgEl.src = data; }
-
     window.onload = init;
 </script>
 </body>
 </html>
-
-
-
