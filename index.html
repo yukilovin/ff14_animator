@@ -405,8 +405,25 @@
                 ctx.fill();
                 ctx.restore();
             } 
-            else if(obj.type === 'arrow') ctx.fillStyle = obj.color; ctx.beginPath(); ctx.moveTo(-w/2,-h*0.2); ctx.lineTo(w*0.1,-h*0.2); ctx.lineTo(w*0.1,-h*0.5); ctx.lineTo(w/2,0); ctx.lineTo(w*0.1,h*0.5); ctx.lineTo(w*0.1,h*0.2); ctx.lineTo(-w/2,h*0.2); ctx.fill(); }
-            else { ctx.fillStyle = obj.color; ctx.beginPath(); if(obj.type==='circle') ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); else if(obj.type==='rect') ctx.rect(-w/2,-h/2,w,h); ctx.fill(); }
+            else if(obj.type === 'arrow') { 
+                ctx.fillStyle = obj.color; 
+                ctx.beginPath(); 
+                ctx.moveTo(-w/2,-h*0.2); 
+                ctx.lineTo(w*0.1,-h*0.2); 
+                ctx.lineTo(w*0.1,-h*0.5); 
+                ctx.lineTo(w/2,0); 
+                ctx.lineTo(w*0.1,h*0.5); 
+                ctx.lineTo(w*0.1,h*0.2); 
+                ctx.lineTo(-w/2,h*0.2); 
+                ctx.fill(); 
+            }
+            else { 
+                ctx.fillStyle = obj.color; 
+                ctx.beginPath(); 
+                if(obj.type==='circle') ctx.ellipse(0,0,w/2,h/2,0,0,Math.PI*2); 
+                else if(obj.type==='rect') ctx.rect(-w/2,-h/2,w,h); 
+                ctx.fill(); 
+            }
             ctx.restore();
             if(!temp && obj.id === activeId) {
                 ctx.save(); ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle="#94a3b8"; obj.points.forEach((p,i)=> i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
@@ -552,5 +569,6 @@
 </script>
 </body>
 </html>
+
 
 
